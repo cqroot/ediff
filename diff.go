@@ -2,6 +2,8 @@ package ediff
 
 import (
 	"bufio"
+	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -13,40 +15,64 @@ func (e Ediff) runEditor(file string) error {
 	edcmd := exec.Command(e.editor, args...)
 	edcmd.Stdin = os.Stdin
 	edcmd.Stdout = os.Stdout
+
+	var errb bytes.Buffer
+	edcmd.Stderr = &errb
+
 	err := edcmd.Run()
 
 	if e.ignoreEditorError {
 		return nil
-	} else {
-		return err
 	}
+
+	if err != nil {
+		return fmt.Errorf(
+			"run editor %s: %w\n    stderr = %s",
+			e.editor, err, errb.String(),
+		)
+	}
+
+	return nil
 }
 
-func (e Ediff) Diff() ([]DiffPair, error) {
+func (e Ediff) createTemp() (string, error) {
 	// Create temp file
 	tmp, err := os.CreateTemp("", "ediff-")
 	if err != nil {
-		return nil, err
+		return "", fmt.Errorf("create temp file: %w", err)
 	}
-	defer os.Remove(tmp.Name())
+	defer tmp.Close()
 
 	// Write items to temp file
 	if _, err = tmp.WriteString(strings.Join(e.items, "\n")); err != nil {
-		return nil, err
+		return "", fmt.Errorf("create temp file: %w", err)
 	}
 	if err := tmp.Sync(); err != nil {
-		return nil, err
+		return "", fmt.Errorf("create temp file: %w", err)
 	}
 
+	return tmp.Name(), nil
+}
+
+func (e Ediff) Diff() ([]DiffPair, error) {
+	tmpName, err := e.createTemp()
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tmpName)
+
 	// Run editor
-	if err := e.runEditor(tmp.Name()); err != nil {
+	if err := e.runEditor(tmpName); err != nil {
 		return nil, err
 	}
 
 	// Read new items from temp file
-	if _, err := tmp.Seek(0, 0); err != nil {
+	tmp, err := os.Open(tmpName)
+	if err != nil {
 		return nil, err
 	}
+	defer tmp.Close()
+
 	scanner := bufio.NewScanner(tmp)
 	scanner.Split(bufio.ScanLines)
 
