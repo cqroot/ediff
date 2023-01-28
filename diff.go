@@ -92,5 +92,9 @@ func (e Ediff) Run() ([]DiffPair, error) {
 		idx += 1
 	}
 
+	if idx != len(e.items) {
+		return nil, ErrDifferentItemCount
+	}
+
 	return pairs, nil
 }

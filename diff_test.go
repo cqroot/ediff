@@ -21,9 +21,7 @@ func TestDiff(t *testing.T) {
 	})
 
 	pairs, err := ed.Run()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	require.Equal(t, []ediff.DiffPair{
 		{Prev: "item 1", Curr: "obj 1"},
