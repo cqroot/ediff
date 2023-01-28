@@ -54,7 +54,7 @@ func (e Ediff) createTemp() (string, error) {
 	return tmp.Name(), nil
 }
 
-func (e Ediff) Diff() ([]DiffPair, error) {
+func (e Ediff) Run() ([]DiffPair, error) {
 	tmpName, err := e.createTemp()
 	if err != nil {
 		return nil, err

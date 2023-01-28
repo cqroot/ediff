@@ -20,7 +20,7 @@ func TestDiff(t *testing.T) {
 		"item 3",
 	})
 
-	pairs, err := ed.Diff()
+	pairs, err := ed.Run()
 	if err != nil {
 		t.Fatal(err)
 	}
